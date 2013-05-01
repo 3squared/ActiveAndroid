@@ -23,8 +23,6 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.DataSetObserver;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.Parcel;
-import android.os.Parcelable;
 
 import com.activeandroid.annotation.Column;
 import com.activeandroid.query.Delete;
@@ -34,7 +32,7 @@ import com.activeandroid.util.Log;
 import com.activeandroid.util.ReflectionUtils;
 
 @SuppressWarnings("unchecked")
-public abstract class Model implements Parcelable {
+public abstract class Model {
 	//////////////////////////////////////////////////////////////////////////////////////
 	// PRIVATE MEMBERS
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -311,33 +309,4 @@ public abstract class Model implements Parcelable {
 		}
 		return mTableInfo;
 	}
-
-	//////////////////////////////////////////////////////////////////////////////////////
-	// PARCELABLE
-	//////////////////////////////////////////////////////////////////////////////////////
-
-	public int describeContents() {
-		return 0;
-	}
-	
-	 public void writeToParcel(Parcel out, int flags) {
-         out.writeLong(getId());
-         out.writeSerializable(getClass());
-         out.writeString(getTableInfo().getTableName());
-     }
-
-     public static final Parcelable.Creator<Model> CREATOR
-             = new Parcelable.Creator<Model>() {
-         public Model createFromParcel(Parcel in) {
-        	 long id = in.readLong();
-        	 Class<Model> modelClass = (Class<Model>) in.readSerializable();
-             return Model.load(modelClass, id);
-         }
-
-         public Model[] newArray(int size) {
-             return new Model[size];
-         }
-     };
-     
-
 }
