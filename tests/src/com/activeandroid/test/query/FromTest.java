@@ -60,7 +60,7 @@ public class FromTest extends SqlableTestCase {
 		assertSqlEquals(SELECT_PREFIX + "WHERE Id = 5",
 				from().where("Id = 5"));
 		
-		assertSqlEquals(SELECT_PREFIX + "WHERE Id = 5",
+		assertSqlEquals(SELECT_PREFIX + "WHERE Id = 1 AND Id = 2 AND Id = 5",
 				from().where("Id = 1").where("Id = 2").where("Id = 5"));
 	}
 	
@@ -75,14 +75,85 @@ public class FromTest extends SqlableTestCase {
 		assertSqlEquals(SELECT_PREFIX + "WHERE Id > ? AND Id < ?",
 				query);
 		
+        // Chained
 		query = from()
 				.where("Id != ?", 10)
 				.where("Id IN (?, ?, ?)", 5, 10, 15)
 				.where("Id > ? AND Id < ?", 5, 10);
-		assertArrayEquals(query.getArguments(), "5", "10");
-		assertSqlEquals(SELECT_PREFIX + "WHERE Id > ? AND Id < ?",
+		assertArrayEquals(query.getArguments(), "10", "5", "10", "15", "5", "10");
+		assertSqlEquals(SELECT_PREFIX + "WHERE Id != ? AND Id IN (?, ?, ?) AND Id > ? AND Id < ?",
 				query);
 	}
+
+	public void testWhereChaining() {
+	    
+	    From expected = from()
+	            .where("a = ? AND b = ?", 1, 2);
+	    
+	    From actual = from()
+	            .where("a = ?", 1, 2)
+	            .where("b = ?", 1, 2);
+	    
+	    assertSqlEquals(expected, actual);
+	}
+	
+   public void testWhereAndChaining() {
+
+       From expected = from()
+               .where("a = ? AND b = ?", 1, 2);
+
+       From actual = from()
+               .where("a = ?", 1)
+               .and("b = ?", 2);
+
+       assertSqlEquals(expected, actual);
+   }
+
+   public void testWhereOrChaining() {
+
+       From expected = from()
+               .where("a = ? OR b = ?", 1, 2);
+
+       From actual = from()
+               .where("a = ?", 1)
+               .or("b = ?", 2);
+
+       assertSqlEquals(expected, actual);
+   }
+
+   public void testWhereAndOrChaining() {
+
+       From expected = from()
+               .where("a = ? OR (b = ? AND c = ?)", 1, 2, 3);
+
+       From actual = from()
+               .where("a = ?", 1)
+               .or("(b = ? AND c = ?)", 2, 3);
+
+       assertSqlEquals(expected, actual);
+   }
+
+   public void testWhereAlternateAndOrChaining() {
+
+       From expected = from()
+               .where("a = ? OR (b = ? AND c = ?)", 1, 2, 3);
+
+       From actual = from()
+               .where("a = ?", 1)
+               .or("(b = ?", 2)
+               .and("c = ?)", 3);
+
+       assertSqlEquals(expected, actual);
+   }
+
+    // Test with 'no arguments' and 'with arguments' chained together.
+    public void testWhereWithNoArgumentsAndWithArguments() {
+        From query = from().where("Id = 5");
+        query.where("Id > ?", 4);
+        assertArrayEquals(query.getArguments(), "4");
+        assertSqlEquals(SELECT_PREFIX + "WHERE Id = 5 AND Id > ?",
+                query);
+    }
 	
 	public void testSingleJoin() {
 		assertSqlEquals(SELECT_PREFIX + "JOIN JoinModel ON MockModel.Id = JoinModel.Id",

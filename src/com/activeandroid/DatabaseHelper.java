@@ -30,10 +30,13 @@ import java.util.List;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.text.TextUtils;
 
+import com.activeandroid.util.IOUtils;
 import com.activeandroid.util.Log;
 import com.activeandroid.util.NaturalOrderComparator;
 import com.activeandroid.util.SQLiteUtils;
+import com.activeandroid.util.SqlParser;
 
 public final class DatabaseHelper extends SQLiteOpenHelper {
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -43,12 +46,19 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
 	public final static String MIGRATION_PATH = "migrations";
 
 	//////////////////////////////////////////////////////////////////////////////////////
+    // PRIVATE FIELDS
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    private final String mSqlParser;
+
+	//////////////////////////////////////////////////////////////////////////////////////
 	// CONSTRUCTORS
 	//////////////////////////////////////////////////////////////////////////////////////
 
 	public DatabaseHelper(Configuration configuration) {
 		super(configuration.getContext(), configuration.getDatabaseName(), null, configuration.getDatabaseVersion());
 		copyAttachedDatabase(configuration.getContext(), configuration.getDatabaseName());
+		mSqlParser = configuration.getSqlParser();
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -65,6 +75,7 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
 		executePragmas(db);
 		executeCreate(db);
 		executeMigrations(db, -1, db.getVersion());
+		executeCreateIndex(db);
 	}
 
 	@Override
@@ -94,10 +105,10 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
 			final InputStream inputStream = context.getAssets().open(databaseName);
 			final OutputStream output = new FileOutputStream(dbPath);
 
-			byte[] buffer = new byte[1024];
+			byte[] buffer = new byte[8192];
 			int length;
 
-			while ((length = inputStream.read(buffer)) > 0) {
+			while ((length = inputStream.read(buffer, 0, 8192)) > 0) {
 				output.write(buffer, 0, length);
 			}
 
@@ -118,6 +129,23 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
 		if (SQLiteUtils.FOREIGN_KEYS_SUPPORTED) {
 			db.execSQL("PRAGMA foreign_keys=ON;");
 			Log.i("Foreign Keys supported. Enabling foreign key features.");
+		}
+	}
+
+	private void executeCreateIndex(SQLiteDatabase db) {
+		db.beginTransaction();
+		try {
+			for (TableInfo tableInfo : Cache.getTableInfos()) {
+				String[] definitions = SQLiteUtils.createIndexDefinition(tableInfo);
+
+				for (String definition : definitions) {
+					db.execSQL(definition);
+				}
+			}
+			db.setTransactionSuccessful();
+		}
+		finally {
+			db.endTransaction();
 		}
 	}
 
@@ -171,17 +199,59 @@ public final class DatabaseHelper extends SQLiteOpenHelper {
 	}
 
 	private void executeSqlScript(SQLiteDatabase db, String file) {
-		try {
-			final InputStream input = Cache.getContext().getAssets().open(MIGRATION_PATH + "/" + file);
-			final BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-			String line = null;
 
-			while ((line = reader.readLine()) != null) {
-				db.execSQL(line.replace(";", ""));
-			}
-		}
-		catch (IOException e) {
+	    InputStream stream = null;
+
+		try {
+		    stream = Cache.getContext().getAssets().open(MIGRATION_PATH + "/" + file);
+
+		    if (Configuration.SQL_PARSER_DELIMITED.equalsIgnoreCase(mSqlParser)) {
+		        executeDelimitedSqlScript(db, stream);
+
+		    } else {
+		        executeLegacySqlScript(db, stream);
+
+		    }
+
+		} catch (IOException e) {
 			Log.e("Failed to execute " + file, e);
+
+		} finally {
+		    IOUtils.closeQuietly(stream);
+
 		}
+	}
+
+	private void executeDelimitedSqlScript(SQLiteDatabase db, InputStream stream) throws IOException {
+
+	    List<String> commands = SqlParser.parse(stream);
+
+	    for(String command : commands) {
+	        db.execSQL(command);
+	    }
+	}
+
+	private void executeLegacySqlScript(SQLiteDatabase db, InputStream stream) throws IOException {
+
+	    InputStreamReader reader = null;
+        BufferedReader buffer = null;
+
+        try {
+            reader = new InputStreamReader(stream);
+            buffer = new BufferedReader(reader);
+            String line = null;
+
+            while ((line = buffer.readLine()) != null) {
+                line = line.replace(";", "").trim();
+                if (!TextUtils.isEmpty(line)) {
+                    db.execSQL(line);
+                }
+            }
+
+        } finally {
+            IOUtils.closeQuietly(buffer);
+            IOUtils.closeQuietly(reader);
+
+        }
 	}
 }

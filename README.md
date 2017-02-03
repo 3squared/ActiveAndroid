@@ -5,6 +5,26 @@ ActiveAndroid is an active record style ORM ([object relational mapper](http://e
 
 ActiveAndroid does so much more than this though. Accessing the database is a hassle, to say the least, in Android. ActiveAndroid takes care of all the setup and messy stuff, and all with just a few simple steps of configuration.
 
+## Download
+
+Grab via Maven:
+```xml
+<dependency>
+  <groupId>com.michaelpardo</groupId>
+  <artifactId>activeandroid</artifactId>
+  <version>3.1.0-SNAPSHOT</version>
+</dependency>
+```
+or Gradle:
+```groovy
+repositories {
+    mavenCentral()
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
+compile 'com.michaelpardo:activeandroid:3.1.0-SNAPSHOT'
+```
+
 ## Documentation
 
 * [Getting started](http://github.com/pardom/ActiveAndroid/wiki/Getting-started)
@@ -15,6 +35,7 @@ ActiveAndroid does so much more than this though. Accessing the database is a ha
 * [Using the content provider](http://github.com/pardom/ActiveAndroid/wiki/Using-the-content-provider)
 * [Schema migrations](http://github.com/pardom/ActiveAndroid/wiki/Schema-migrations)
 * [Pre-populated-databases](http://github.com/pardom/ActiveAndroid/wiki/Pre-populated-databases)
+* [Running the Test Suite](https://github.com/pardom/ActiveAndroid/wiki/Running-the-Test-Suite)
 
 ## License
 
@@ -39,6 +60,9 @@ ActiveAndroid does so much more than this though. Accessing the database is a ha
 Please fork this repository and contribute back using [pull requests](http://github.com/pardom/ActiveAndroid/pulls).
 
 Any contributions, large or small, major features, bug fixes, unit tests are welcomed and appreciated but will be thoroughly reviewed and discussed.
+
+You can run the test suite by following the instructions on the [Running the Test Suite](https://github.com/pardom/ActiveAndroid/wiki/Running-the-Test-Suite) Wiki page.
+
 
 ## Author
 

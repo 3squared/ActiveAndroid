@@ -1,4 +1,6 @@
-package com.activeandroid.test.query;
+package com.activeandroid.serializer;
+
+import java.io.File;
 
 /*
  * Copyright (C) 2010 Michael Pardo
@@ -16,15 +18,29 @@ package com.activeandroid.test.query;
  * limitations under the License.
  */
 
-import com.activeandroid.query.Sqlable;
-import com.activeandroid.test.ActiveAndroidTestCase;
 
-public abstract class SqlableTestCase extends ActiveAndroidTestCase {
-	public static void assertSqlEquals(String expected, Sqlable actual) {
-		assertEquals(expected, actual.toSql());
+public final class FileSerializer extends TypeSerializer {
+	public Class<?> getDeserializedType() {
+		return File.class;
 	}
-	
-	public static void assertSqlEquals(Sqlable expected, Sqlable actual) {
-	    assertEquals(expected.toSql(), actual.toSql());
+
+	public Class<?> getSerializedType() {
+		return String.class;
+	}
+
+	public String serialize(Object data) {
+		if (data == null) {
+			return null;
+		}
+
+		return ((File) data).toString();
+	}
+
+	public File deserialize(Object data) {
+		if (data == null) {
+			return null;
+		}
+
+		return new File((String) data);
 	}
 }

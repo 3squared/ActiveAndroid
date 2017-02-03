@@ -33,6 +33,7 @@ import com.activeandroid.serializer.CalendarSerializer;
 import com.activeandroid.serializer.SqlDateSerializer;
 import com.activeandroid.serializer.TypeSerializer;
 import com.activeandroid.serializer.UtilDateSerializer;
+import com.activeandroid.serializer.FileSerializer;
 import com.activeandroid.util.Log;
 import com.activeandroid.util.ReflectionUtils;
 import dalvik.system.DexFile;
@@ -48,6 +49,7 @@ final class ModelInfo {
 			put(Calendar.class, new CalendarSerializer());
 			put(java.sql.Date.class, new SqlDateSerializer());
 			put(java.util.Date.class, new UtilDateSerializer());
+			put(java.io.File.class, new FileSerializer());
 		}
 	};
 
@@ -104,7 +106,8 @@ final class ModelInfo {
 		if (typeSerializers != null) {
 			for (Class<? extends TypeSerializer> typeSerializer : typeSerializers) {
 				try {
-					mTypeSerializers.put(typeSerializer, typeSerializer.newInstance());
+					TypeSerializer instance = typeSerializer.newInstance();
+					mTypeSerializers.put(instance.getDeserializedType(), instance);
 				}
 				catch (InstantiationException e) {
 					Log.e("Couldn't instantiate TypeSerializer.", e);
@@ -123,7 +126,7 @@ final class ModelInfo {
 		String sourcePath = context.getApplicationInfo().sourceDir;
 		List<String> paths = new ArrayList<String>();
 
-		if (sourcePath != null && new File(sourcePath).isDirectory()) {
+		if (sourcePath != null && !(new File(sourcePath).isDirectory())) {
 			DexFile dexfile = new DexFile(sourcePath);
 			Enumeration<String> entries = dexfile.entries();
 
@@ -146,7 +149,7 @@ final class ModelInfo {
 
 		for (String path : paths) {
 			File file = new File(path);
-			scanForModelClasses(file, packageName, context.getClass().getClassLoader());
+			scanForModelClasses(file, packageName, context.getClassLoader());
 		}
 	}
 
@@ -170,7 +173,7 @@ final class ModelInfo {
 					return;
 				}
 
-				className = className.replace("/", ".");
+				className = className.replace(System.getProperty("file.separator"), ".");
 
 				int packageNameIndex = className.lastIndexOf(packageName);
 				if (packageNameIndex < 0) {
@@ -188,8 +191,8 @@ final class ModelInfo {
 					mTableInfos.put(modelClass, new TableInfo(modelClass));
 				}
 				else if (ReflectionUtils.isTypeSerializer(discoveredClass)) {
-					TypeSerializer typeSerializer = (TypeSerializer) discoveredClass.newInstance();
-					mTypeSerializers.put(typeSerializer.getDeserializedType(), typeSerializer);
+					TypeSerializer instance = (TypeSerializer) discoveredClass.newInstance();
+					mTypeSerializers.put(instance.getDeserializedType(), instance);
 				}
 			}
 			catch (ClassNotFoundException e) {
